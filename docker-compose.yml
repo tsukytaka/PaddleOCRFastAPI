@@ -2,13 +2,12 @@ version: "3"
 
 services:
 
-  PaddleOCR:
-    build: . 
-    container_name: paddle_ocr_api # 自定义容器名
-    image: paddleocrfastapi:latest # 第2步自定义的镜像名与标签
+  paddleocrfastapi:
+    container_name: paddleocrfastapi # Custom Container Name
+    image: paddleocrfastapi:lastest # Customized Image Name & Label in Step 2
     environment:
       - TZ=Asia/Hong_Kong
-      - OCR_LANGUAGE=ch
+      - OCR_LANGUAGE=jp # support 80 languages. refer to https://github.com/Mushroomcat9998/PaddleOCR/blob/main/doc/doc_en/multi_languages_en.md#language_abbreviations
     ports:
-    - "8000:8000" # 自定义服务暴露端口, 8000为FastAPI默认端口, 不做修改,只能改前面的8000,不要忘了引号
+     - 8000:8000 # Customize the service exposure port, 8000 is the default FastAPI port, do not modify
     restart: unless-stopped
