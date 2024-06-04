@@ -3,14 +3,14 @@
 # import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# import uvicorn
+import uvicorn
 
 from models.RestfulModel import *
 from routers import ocr
 from utils.ImageHelper import *
 
-app = FastAPI(title="Paddle OCR API",
-              description="基于 Paddle OCR 和 FastAPI 的自用接口")
+app = FastAPI(title="OCR API",
+              description="")
 
 
 # 跨域设置
@@ -27,4 +27,4 @@ app.add_middleware(
 
 app.include_router(ocr.router)
 
-# uvicorn.run(app=app, host="0.0.0.0", port=8000)
+uvicorn.run(app=app, host="0.0.0.0", port=8000)
