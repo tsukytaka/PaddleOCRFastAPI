@@ -39,4 +39,4 @@ async def predict_by_file(file: UploadFile):
             detail="only upload file .jpg, .jpeg or .png"
         )
 
-    return Response(output_file_bytes, media_type="image/jpg")
+    return Response(output_file_bytes, media_type="image/png")
