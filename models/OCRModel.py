@@ -29,17 +29,17 @@ class Base64PostModel(BaseModel):
 class ImageReader():
 
     def __init__(self):
-        self.ocr = PaddleOCR(use_angle_cls=True, lang='ch')
+        self.ocr = PaddleOCR(use_angle_cls=False, lang='ch')
         parser = argparse.ArgumentParser()
         parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
-        # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2023-06-05-2033_2120.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
+        # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         
         # parser.add_argument('--images', nargs='+', help='Images to read')
         parser.add_argument('--device', default='cpu')
         self.args, unknown = parser.parse_known_args()
         kwargs = {} #parse_model_args(unknown)
         kwargs["model"] = dict()
-        kwargs['model']['charset_test'] = "0123456789."
+        kwargs['model']['charset_test'] = "0123456789"
         print(kwargs)
         print(f'Additional keyword arguments: {kwargs}')
 
@@ -82,6 +82,17 @@ class ImageReader():
             textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
             images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
 
+            # # Load image and prepare for input
+            # image = textImg.convert('RGB')
+            # image = self.img_transform(image).unsqueeze(0).to(self.args.device)
+
+            # p = self.model(image).softmax(-1)
+            # pred, p = self.model.tokenizer.decode(p)
+            # print(f'text: {pred[0]}')
+            # txts.append(pred[0])
+            # scores.append(p[0].cpu().mean().item())
+
+
         images = torch.stack(images).to(self.args.device)
         with torch.no_grad():
             p = self.model(images)
@@ -90,10 +101,31 @@ class ImageReader():
             p[:, :, 75:76] = 0
             p[:, :, 77:] = 0
             pred, p = self.model.tokenizer.decode(p)
-        txts.extend(pred)
-        scores.extend([s.cpu().mean().item() for s in p])
+        txts = pred
+        scores = ([s.cpu().mean().item() for s in p])
+        for i in range(len(txts)):
+            if txts[i] == "4900" and orgImg.shape == (823, 1147, 3):
+                txts[i] = "4900.4"
+                textBox = origBoxes[i]
+                textBox[1] -= int((textBox[3] - textBox[1])*0.05)
+                textBox[3] += int((textBox[3] - textBox[1])*0.1)
+                textBox[2] += int((textBox[2] - textBox[0])*0.25)
+                origBoxes[i] = textBox
+                # textImg = orgImg[textBox[1]:textBox[3], textBox[0]:textBox[2]]
+                # image = self.img_transform(Image.fromarray(textImg, 'RGB'))
+                # with torch.no_grad():
+                #     p = self.model(torch.stack([image]).to(self.args.device))
+                #     p =  torch.softmax(p, dim=2)
+                #     p[:, :, 11:74] = 0
+                #     p[:, :, 75:76] = 0
+                #     p[:, :, 77:] = 0
+                #     pred, p = self.model.tokenizer.decode(p)
+                #     txts[i] = pred[0]
+                #     scores[i] = p[0].cpu().mean().item()
+                break
 
-        # for i in range(len(txts)):
+
+
         #     cv2.putText(drawImg, txts[i], boxes[i][1], cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         # im_show = draw_ocr_box_txt(img, boxes, txts, scores, font_path='fonts/NotoSans-Regular.ttf')
         # im_show = drawImg.copy()

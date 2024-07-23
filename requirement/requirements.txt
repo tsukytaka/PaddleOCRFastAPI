@@ -21,3 +21,4 @@ numpy==1.23.5
     
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+# uvicorn main:app --host 0.0.0.0
