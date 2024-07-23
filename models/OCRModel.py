@@ -92,38 +92,39 @@ class ImageReader():
             # txts.append(pred[0])
             # scores.append(p[0].cpu().mean().item())
 
+        if len(images) > 0:
+            images = torch.stack(images).to(self.args.device)
+            with torch.no_grad():
+                p = self.model(images)
+                p =  torch.softmax(p, dim=2)
+                p[:, :, 11:74] = 0
+                p[:, :, 75:76] = 0
+                p[:, :, 77:] = 0
+                pred, p = self.model.tokenizer.decode(p)
+            txts = pred
+            scores = ([s.cpu().mean().item() for s in p])
+            for i in range(len(txts)):
+                if txts[i] == "4900" and orgImg.shape == (823, 1147, 3):
+                    txts[i] = "4900.4"
+                    textBox = origBoxes[i]
+                    textBox[1] -= int((textBox[3] - textBox[1])*0.05)
+                    textBox[3] += int((textBox[3] - textBox[1])*0.1)
+                    textBox[2] += int((textBox[2] - textBox[0])*0.25)
+                    origBoxes[i] = textBox
+                    # textImg = orgImg[textBox[1]:textBox[3], textBox[0]:textBox[2]]
+                    # image = self.img_transform(Image.fromarray(textImg, 'RGB'))
+                    # with torch.no_grad():
+                    #     p = self.model(torch.stack([image]).to(self.args.device))
+                    #     p =  torch.softmax(p, dim=2)
+                    #     p[:, :, 11:74] = 0
+                    #     p[:, :, 75:76] = 0
+                    #     p[:, :, 77:] = 0
+                    #     pred, p = self.model.tokenizer.decode(p)
+                    #     txts[i] = pred[0]
+                    #     scores[i] = p[0].cpu().mean().item()
+                    break
 
-        images = torch.stack(images).to(self.args.device)
-        with torch.no_grad():
-            p = self.model(images)
-            p =  torch.softmax(p, dim=2)
-            p[:, :, 11:74] = 0
-            p[:, :, 75:76] = 0
-            p[:, :, 77:] = 0
-            pred, p = self.model.tokenizer.decode(p)
-        txts = pred
-        scores = ([s.cpu().mean().item() for s in p])
-        for i in range(len(txts)):
-            if txts[i] == "4900" and orgImg.shape == (823, 1147, 3):
-                txts[i] = "4900.4"
-                textBox = origBoxes[i]
-                textBox[1] -= int((textBox[3] - textBox[1])*0.05)
-                textBox[3] += int((textBox[3] - textBox[1])*0.1)
-                textBox[2] += int((textBox[2] - textBox[0])*0.25)
-                origBoxes[i] = textBox
-                # textImg = orgImg[textBox[1]:textBox[3], textBox[0]:textBox[2]]
-                # image = self.img_transform(Image.fromarray(textImg, 'RGB'))
-                # with torch.no_grad():
-                #     p = self.model(torch.stack([image]).to(self.args.device))
-                #     p =  torch.softmax(p, dim=2)
-                #     p[:, :, 11:74] = 0
-                #     p[:, :, 75:76] = 0
-                #     p[:, :, 77:] = 0
-                #     pred, p = self.model.tokenizer.decode(p)
-                #     txts[i] = pred[0]
-                #     scores[i] = p[0].cpu().mean().item()
-                break
-
+        
 
 
         #     cv2.putText(drawImg, txts[i], boxes[i][1], cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
