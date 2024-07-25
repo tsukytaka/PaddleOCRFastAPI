@@ -78,4 +78,41 @@ def drawResult(img, boxes, txts):
         # d.text([0,0], info, fill=(255, 0, 0), font=fnt)
 
     return img
+def sortTextBox(boxes):
+    boxes = sorted(boxes, key=lambda rect: (rect[0], rect[1]))
+    sortedBoxs = []
+    for i in range(len(boxes)):
+        added = False
+        for j in range(len(sortedBoxs)):
+            y,h = sortedBoxs[j][0][1], sortedBoxs[j][0][3]-sortedBoxs[j][0][1]
+            if (boxes[i][1] >= y - h / 2) and (boxes[i][1] < y + h / 2):
+                sortedBoxs[j].append(boxes[i])
+                added = True
+                break
+        if not added:
+            sortedBoxs.append([boxes[i]])
 
+    return sortedBoxs
+
+def mergeLine(boxes):
+    print("boxes: ", boxes)
+    sortedBoxs = sortTextBox(boxes)
+    lines = []
+    for i in range(len(sortedBoxs)):
+        if len(sortedBoxs[i]) < 1:
+            continue
+        print("sortedBoxs {}: {}".format(i, sortedBoxs[i]))
+        x_values = []
+        y_values = []
+        for j in range(len(sortedBoxs[i])):
+            x_values.append(sortedBoxs[i][j][0])
+            x_values.append(sortedBoxs[i][j][2])
+            y_values.append(sortedBoxs[i][j][1])
+            y_values.append(sortedBoxs[i][j][3])
+        print("x_values: ", x_values)
+        print("y_values: ", y_values)
+
+        x_min, x_max = min(x_values), max(x_values)
+        y_min, y_max = min(y_values), max(y_values)
+        lines.append((x_min, y_min, x_max, y_max))
+    return lines

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/ocr", tags=["OCR"])
 ocr = PaddleOCR(use_angle_cls=True, lang=OCR_LANGUAGE)
 
 @router.post('/predict-by-file', response_model=RestfulModel, summary="read file")
-async def predict_by_file(file: UploadFile):
+async def predict_by_file(file: UploadFile, model:int=1):
     imageReader: ImageReader = ImageReader()
     restfulModel: RestfulModel = RestfulModel()
     if file.filename.endswith((".jpg", ".jpeg",".png")):
@@ -29,7 +29,7 @@ async def predict_by_file(file: UploadFile):
         # result = ocr.ocr(img=img, cls=False, rec=False)
         # print("ocr result: ", result)
         # detect by paddle
-        output_file_bytes = imageReader.ProcessImage(file_bytes)
+        output_file_bytes = imageReader.ProcessImage(file_bytes, model)
 
         #recognize by parseq
 
