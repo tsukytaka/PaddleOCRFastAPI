@@ -31,19 +31,20 @@ class ImageReader():
     def __init__(self):
         self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
         parser = argparse.ArgumentParser()
-        parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
+        # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         
         # parser.add_argument('--images', nargs='+', help='Images to read')
         parser.add_argument('--device', default='cpu')
         self.args, unknown = parser.parse_known_args()
         kwargs = {} #parse_model_args(unknown)
-        kwargs["model"] = dict()
-        kwargs['model']['charset_test'] = "0123456789"
-        print(kwargs)
-        print(f'Additional keyword arguments: {kwargs}')
+        # kwargs["model"] = dict()
+        # kwargs['model']['charset_test'] = "0123456789"
+        # print(kwargs)
+        # print(f'Additional keyword arguments: {kwargs}')
 
-        self.model = load_from_checkpoint(self.args.checkpoint, **kwargs).eval().to(self.args.device)
+        self.model = load_from_checkpoint('parseq_rec_model/parseq-2024_05_19.ckpt', **kwargs).eval().to(self.args.device)
+        self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq-2024_05_19.ckpt', **kwargs).eval().to(self.args.device)
         self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
 
     def ProcessImage(self, imageFileBytes, modelType):
@@ -159,3 +160,44 @@ class ImageReader():
         bytes_image = io.BytesIO()
         im_show.save(bytes_image, format='PNG')
         return bytes_image.getvalue()
+    
+
+    def ReadImageWithPos(self, imageFileBytes, items, modelType):
+        img = bytes_to_ndarray(imageFileBytes)
+        orgImg = img.copy()
+        drawImg = orgImg.copy()
+        txts = []
+        scores = []
+        images=[]
+        origBoxes = []
+        #rec by parseq
+        for i in range(len(items)):
+            x,y,w,h = items[i]["position"]
+            origBoxes.append([x,y,x+w,y+h])
+            textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
+            images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
+        if len(images) > 0:
+            images = torch.stack(images).to(self.args.device)
+            with torch.no_grad():
+                p = self.model(images)
+                p =  torch.softmax(p, dim=2)
+                p[:, :, 11:74] = 0
+                p[:, :, 75:76] = 0
+                p[:, :, 77:] = 0
+                if modelType == 0:
+                    pred, p = self.model.tokenizer.decode(p)
+                if modelType == 1:
+                    pred, p = self.model_writer_1.tokenizer.decode(p)
+                txts = pred
+                scores = ([s.cpu().mean().item() for s in p])
+                for i in range(len(txts)):
+                    items[i]["content"] =txts[i]
+                    items[i]["score"] =scores[i]
+
+
+        drawImg = drawResult(drawImg, origBoxes, txts)
+        array = cv2.cvtColor(np.array(drawImg), cv2.COLOR_RGB2BGR)
+        im_show = Image.fromarray(array, mode="RGB")
+        bytes_image = io.BytesIO()
+        im_show.save(bytes_image, format='PNG')
+        return items, bytes_image.getvalue()
