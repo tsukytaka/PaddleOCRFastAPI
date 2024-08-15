@@ -14,6 +14,7 @@ OCR_LANGUAGE = os.environ.get("OCR_LANGUAGE", "ch")
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
 ocr = PaddleOCR(use_angle_cls=True, lang=OCR_LANGUAGE)
+imageReader = ImageReader()
 
 @router.post('/predict-by-file', response_model=RestfulModel, summary="read file")
 async def predict_by_file(file: UploadFile, model:int=1):
@@ -42,9 +43,8 @@ async def predict_by_file(file: UploadFile, model:int=1):
     return Response(output_file_bytes, media_type="image/png")
 
 @router.post('/read-file-with-position', response_model=RestfulModel, summary="read file at some position")
-async def read_file_with_position(file: UploadFile, positions: str=Form(), model:int=0):
-    imageReader: ImageReader = ImageReader()
-    restfulModel: RestfulModel = RestfulModel()
+async def read_file_with_position(file: UploadFile, positions: str=Form(), model:int=0): 
+    # restfulModel: RestfulModel = RestfulModel()
     
     print("file name: ",file.filename)
     # print("positions: ",positions)
