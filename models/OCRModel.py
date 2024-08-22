@@ -11,6 +11,7 @@ import cv2
 import glob
 import torch
 import argparse
+import re
 
 from strhub.data.module import SceneTextDataModule
 from strhub.models.utils import load_from_checkpoint, parse_model_args
@@ -191,7 +192,10 @@ class ImageReader():
                 txts = pred
                 scores = ([s.cpu().mean().item() for s in p])
                 for i in range(len(txts)):
-                    items[i]["content"] =txts[i]
+                    txt = txts[i]
+                    txt = re.sub("(^\\D+)","", txt)
+                    txt = re.sub("(\\D+$)","", txt)
+                    items[i]["content"] =txt
                     items[i]["score"] =scores[i]
 
 
