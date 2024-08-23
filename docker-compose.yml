@@ -1,13 +1,10 @@
-version: "3"
-
+version: "1"
 services:
-
-  paddleocrfastapi:
-    container_name: paddleocrfastapi # Custom Container Name
-    image: paddleocrfastapi:lastest # Customized Image Name & Label in Step 2
-    environment:
-      - TZ=Asia/Hong_Kong
-      - OCR_LANGUAGE=jp # support 80 languages. refer to https://github.com/Mushroomcat9998/PaddleOCR/blob/main/doc/doc_en/multi_languages_en.md#language_abbreviations
+  ocrfastapi:
+    container_name: ocrfastapi-service # Custom Container Name
+    image: ocrfastapi:latest # Customized Image Name & Label in Step 2
+    volumes:
+    - ./:/app/ocr-service
     ports:
-     - 8000:8000 # Customize the service exposure port, 8000 is the default FastAPI port, do not modify
+     - 8005:8005
     restart: unless-stopped
