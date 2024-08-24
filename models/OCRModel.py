@@ -30,7 +30,7 @@ class Base64PostModel(BaseModel):
 class ImageReader():
 
     def __init__(self):
-        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
+        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
         parser = argparse.ArgumentParser()
         # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
