@@ -4,7 +4,11 @@ services:
     container_name: ocrfastapi-service # Custom Container Name
     image: ocrfastapi:latest # Customized Image Name & Label in Step 2
     volumes:
-    - ./:/app/ocr-service
+     - ./:/app
     ports:
-     - 8005:8005
+     - 8000:8000
     restart: unless-stopped
+
+networks:
+  default:
+    name: ocr-services

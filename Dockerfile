@@ -3,7 +3,8 @@ FROM ubuntu:jammy
 EXPOSE 8000
 
 # Copy only the necessary files for pip install
-COPY . /app
+COPY ./requirement /app/requirement
+COPY ./lib /app/lib
 
 RUN apt update
 RUN apt install python3 python3-pip -y
