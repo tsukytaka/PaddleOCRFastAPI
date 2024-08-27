@@ -45,7 +45,7 @@ class ImageReader():
         # print(f'Additional keyword arguments: {kwargs}')
 
         self.model = load_from_checkpoint('parseq_rec_model/parseq-2024_05_19.ckpt', **kwargs).eval().to(self.args.device)
-        self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq-2024_05_19.ckpt', **kwargs).eval().to(self.args.device)
+        self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq_writer_1.ckpt', **kwargs).eval().to(self.args.device)
         self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
 
     def ProcessImage(self, imageFileBytes, modelType):
