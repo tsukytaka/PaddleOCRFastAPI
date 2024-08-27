@@ -168,7 +168,7 @@ class ImageReader():
         orgImg = img.copy()
         drawImg = orgImg.copy()
         txts = []
-        scores = []
+        scores = [] 
         images=[]
         origBoxes = []
         #rec by parseq
@@ -193,6 +193,7 @@ class ImageReader():
                 scores = ([s.cpu().mean().item() for s in p])
                 for i in range(len(txts)):
                     txt = txts[i]
+                    txt = re.sub(",", ".", txt)
                     txt = re.sub("(^\\D+)","", txt)
                     txt = re.sub("(\\D+$)","", txt)
                     items[i]["content"] =txt
