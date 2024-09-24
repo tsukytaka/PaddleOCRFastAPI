@@ -197,7 +197,7 @@ class ImageReader():
             x,y,w,h = items[i]["position"]
             origBoxes.append([x,y,x+w,y+h])
             textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
-            if items[i]["title"] == "plateNo":
+            if items[i]["title"] == "plateNo" or items[i]["modeData"] == 2:
                 plateNoImgs.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
                 plateNoItems.append(items[i])
             else:
