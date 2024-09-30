@@ -18,8 +18,8 @@ imageReader = ImageReader()
 
 @router.post('/predict-by-file', response_model=RestfulModel, summary="read file")
 async def predict_by_file(file: UploadFile, model:int=1):
-    imageReader: ImageReader = ImageReader()
-    restfulModel: RestfulModel = RestfulModel()
+    # imageReader: ImageReader = ImageReader()
+    # restfulModel: RestfulModel = RestfulModel()
     if file.filename.endswith((".jpg", ".jpeg",".png")):
         # restfulModel.resultcode = 200
         # restfulModel.message = file.filename
