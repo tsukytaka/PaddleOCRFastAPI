@@ -30,7 +30,8 @@ class Base64PostModel(BaseModel):
 class ImageReader():
 
     def __init__(self):
-        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
+        # self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
+        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
         parser = argparse.ArgumentParser()
         # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
@@ -49,7 +50,7 @@ class ImageReader():
         print(f'model_writer_1: parseq_rec_model/parseq_writer_1.ckpt')
         self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
 
-    def ProcessImage(self, imageFileBytes, modelType):
+    def ProcessImage(self, imageFileBytes, configs, modelType):
         img = bytes_to_ndarray(imageFileBytes)
         orgImg = img.copy()
         formRatio = 480.0 / img.shape[1]
@@ -156,7 +157,24 @@ class ImageReader():
         #     cv2.putText(drawImg, txts[i], boxes[i][1], cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         # im_show = draw_ocr_box_txt(img, boxes, txts, scores, font_path='fonts/NotoSans-Regular.ttf')
         # im_show = drawImg.copy()
-        drawImg = drawResult(drawImg, origBoxes, txts)
+        
+        result_txts = txts
+        result_boxs = origBoxes
+        if len(configs) > 0:
+            result_txts = []
+            result_boxs = []
+            numberDigits = configs["total_digit"]
+            numberDigitBeforeDot = configs["digit_before_dot"]
+            for i in range(len(txts)):
+                text = txts[i]
+                text = re.sub("[\D]", "", text)
+                if len(text) == numberDigits or numberDigits == 0:
+                    if numberDigitBeforeDot > 0 and numberDigitBeforeDot < len(text):
+                        text = text[:numberDigitBeforeDot] + '.' + text[numberDigitBeforeDot:]
+                    result_txts.append(text)
+                    result_boxs.append(origBoxes[i])
+                
+        drawImg = drawResult(drawImg, result_boxs, result_txts)
         array = cv2.cvtColor(np.array(drawImg), cv2.COLOR_RGB2BGR)
         im_show = Image.fromarray(array, mode="RGB")
         bytes_image = io.BytesIO()
