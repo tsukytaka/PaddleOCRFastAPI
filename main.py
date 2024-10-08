@@ -27,4 +27,4 @@ app.add_middleware(
 
 app.include_router(ocr.router)
 
-uvicorn.run(app=app, host="0.0.0.0", port=8000)
+# uvicorn.run(app=app, host="0.0.0.0", port=8000)

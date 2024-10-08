@@ -4,6 +4,7 @@ import base64
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 
 def base64_to_ndarray(b64_data: str):
@@ -33,3 +34,62 @@ def bytes_to_ndarray(img_bytes: str):
     image_array = np.frombuffer(img_bytes, dtype=np.uint8)
     image_np2 = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
     return image_np2
+
+def quad_coords_to_xyxy(quad_coords):
+    x_values = [x for x, _ in quad_coords]
+    y_values = [y for _, y in quad_coords]
+
+    x_min, x_max = min(x_values), max(x_values)
+    y_min, y_max = min(y_values), max(y_values)
+
+    return x_min,y_min,x_max,y_max
+
+def sortTextBox(boxes):
+    boxes = sorted(boxes, key=lambda rect: (rect[0], rect[1]))
+    sortedBoxs = []
+    for i in range(len(boxes)):
+        added = False
+        for j in range(len(sortedBoxs)):
+            y,h = sortedBoxs[j][0][1], sortedBoxs[j][0][3]-sortedBoxs[j][0][1]
+            if (boxes[i][1] >= y - h / 2) and (boxes[i][1] < y + h / 2):
+                sortedBoxs[j].append(boxes[i])
+                added = True
+                break
+        if not added:
+            sortedBoxs.append([boxes[i]])
+
+    return sortedBoxs
+
+def mergeLine(boxes):
+    print("boxes: ", boxes)
+    sortedBoxs = sortTextBox(boxes)
+    lines = []
+    for i in range(len(sortedBoxs)):
+        if len(sortedBoxs[i]) < 1:
+            continue
+        print("sortedBoxs {}: {}".format(i, sortedBoxs[i]))
+        x_values = []
+        y_values = []
+        for j in range(len(sortedBoxs[i])):
+            x_values.append(sortedBoxs[i][j][0])
+            x_values.append(sortedBoxs[i][j][2])
+            y_values.append(sortedBoxs[i][j][1])
+            y_values.append(sortedBoxs[i][j][3])
+        print("x_values: ", x_values)
+        print("y_values: ", y_values)
+
+        x_min, x_max = min(x_values), max(x_values)
+        y_min, y_max = min(y_values), max(y_values)
+        lines.append((x_min, y_min, x_max, y_max))
+    return lines
+
+def drawResult(img, boxes, txts):
+    print("text: ", txts)
+    d = ImageDraw.Draw(Image.fromarray(img))
+    fnt = ImageFont.truetype('fonts/NotoSans-Regular.ttf', 5)
+    for i in range(len(txts)):
+        x_min,y_min,x_max,y_max = boxes[i]
+        img = cv2.rectangle(img, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)
+        img = cv2.putText(img, txts[i], (int(x_min),int(y_min)), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+
+    return img
