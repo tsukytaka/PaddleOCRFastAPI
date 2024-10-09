@@ -1,6 +1,6 @@
 FastAPI
-paddlepaddle
-paddleocr
+# paddlepaddle
+# paddleocr
 uvicorn
 python-multipart
 requests

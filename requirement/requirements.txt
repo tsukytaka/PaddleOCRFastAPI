@@ -7,9 +7,9 @@
 fastapi==0.101.0
     # via -r requirements.in
 paddleocr==2.7.0.0
-    # via -r requirements.in
+#     # via -r requirements.in
 paddlepaddle==2.5.1
-    # via -r requirements.in
+#     # via -r requirements.in
 python-multipart==0.0.6
     # via -r requirements.in
 uvicorn==0.23.2

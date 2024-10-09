@@ -1,6 +1,6 @@
 FROM ubuntu:jammy
 
-EXPOSE 8000
+EXPOSE 8001
 
 # Copy only the necessary files for pip install
 COPY ./requirement /app/requirement
@@ -24,4 +24,4 @@ RUN pip3 install -r /app/requirement/core.txt
 RUN pip3 install -r /app/requirement/requirements.txt
 
 # CMD ["python3", "./main.py"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

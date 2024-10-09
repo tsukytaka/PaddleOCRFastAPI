@@ -1,12 +1,12 @@
 version: "1"
 services:
   ocrfastapi:
-    container_name: ocrfastapi-service # Custom Container Name
-    image: ocrfastapi:latest # Customized Image Name & Label in Step 2
+    container_name: parseqocrfastapi-service # Custom Container Name
+    image: parseqocrfastapi:latest # Customized Image Name & Label in Step 2
     volumes:
      - ./:/app
     ports:
-     - 8000:8000
+     - 8001:8001
     restart: unless-stopped
 
 networks:
