@@ -22,6 +22,7 @@ RUN pip3 install -r requirements.txt
 
 # Copy the rest
 COPY . /app
+RUN pip3 install lib/paddlepaddle-2.4.2-cp38-cp38-linux_x86_64.whl
 
 # CMD ["python3", "./main.py"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0"]

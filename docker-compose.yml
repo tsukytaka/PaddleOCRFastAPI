@@ -4,7 +4,7 @@ services:
 
   paddleocrfastapi:
     container_name: paddleocrfastapi # Custom Container Name
-    image: paddleocrfastapi:lastest # Customized Image Name & Label in Step 2
+    image: paddleocrfastapi:latest # Customized Image Name & Label in Step 2
     environment:
       - TZ=Asia/Hong_Kong
       - OCR_LANGUAGE=jp # support 80 languages. refer to https://github.com/Mushroomcat9998/PaddleOCR/blob/main/doc/doc_en/multi_languages_en.md#language_abbreviations
