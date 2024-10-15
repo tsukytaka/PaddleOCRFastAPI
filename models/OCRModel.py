@@ -31,7 +31,7 @@ class ImageReader():
 
     def __init__(self):
         # self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
-        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
+        # self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
         parser = argparse.ArgumentParser()
         # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
@@ -47,139 +47,9 @@ class ImageReader():
         self.model_plate_no = load_from_checkpoint('parseq_rec_model/parseq_plate_no_2024_09_13.ckpt', **kwargs).eval().to(self.args.device)
         self.model = load_from_checkpoint('parseq_rec_model/parseq_2024_09_23.ckpt', **kwargs).eval().to(self.args.device)
         self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq_writer_1.ckpt', **kwargs).eval().to(self.args.device)
-        print(f'model_writer_1: parseq_rec_model/parseq_writer_1.ckpt')
-        self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
-
-    def ProcessImage(self, imageFileBytes, configs, modelType):
-        img = bytes_to_ndarray(imageFileBytes)
-        orgImg = img.copy()
-        formRatio = 480.0 / img.shape[1]
-        img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
-        # npImg = Image.fromarray(img)
-        drawImg = orgImg.copy()
-        #detect by paddle
-        result = self.ocr.ocr(img=img, cls=False, rec=False)
-        print("result: ", result)
-        for idx in range(len(result)):
-            res = result[idx]
-            for line in res:
-                print(line)
-        boxes = result[0]
-        print("boxes: ", boxes)
-        print("size: ", len(boxes))
-        for i in range(len(boxes)):
-            boxes[i] = (quad_coords_to_xyxy(boxes[i]))
-        boxes = mergeLine(boxes)
-        txts = []
-        scores = []
-        images=[]
-        origBoxes = []
-        #rec by parseq
-        if modelType == 1:
-            for i in range(len(boxes)):
-                x_min,y_min,x_max,y_max = boxes[i]
-                w,h = x_max-x_min,y_max-y_min
-                externRatio = 0.1
-                x = max(0, x_min - int(w*externRatio*0.5))
-                y = max(0, y_min - int(h*externRatio*0.5))
-                w += int(w*externRatio)
-                h += int(h*externRatio)
-                origBoxes.append([int(x/formRatio),int(y/formRatio),int((x + w)/formRatio),int((y + h)/formRatio)])
-                # origBoxes.append([int(x_min/formRatio),int(y_min/formRatio),int(x_max/formRatio),int(y_max/formRatio)])
-                # drawImg = cv2.rectangle(drawImg, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)
-                textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
-                images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
-
-                # # Load image and prepare for input
-                # image = textImg.convert('RGB')
-                # image = self.img_transform(image).unsqueeze(0).to(self.args.device)
-
-                # p = self.model(image).softmax(-1)
-                # pred, p = self.model.tokenizer.decode(p)
-                # print(f'text: {pred[0]}')
-                # txts.append(pred[0])
-                # scores.append(p[0].cpu().mean().item())
-
-            if len(images) > 0:
-                images = torch.stack(images).to(self.args.device)
-                with torch.no_grad():
-                    p = self.model(images)
-                    p =  torch.softmax(p, dim=2)
-                    p[:, :, 11:74] = 0
-                    p[:, :, 75:76] = 0
-                    p[:, :, 77:] = 0
-                    pred, p = self.model.tokenizer.decode(p)
-                txts = pred
-                scores = ([s.cpu().mean().item() for s in p])
-                # for i in range(len(txts)):
-                #     if txts[i] == "4900" and orgImg.shape == (823, 1147, 3):
-                #         txts[i] = "4900.4"
-                #         textBox = origBoxes[i]
-                #         textBox[1] -= int((textBox[3] - textBox[1])*0.05)
-                #         textBox[3] += int((textBox[3] - textBox[1])*0.1)
-                #         textBox[2] += int((textBox[2] - textBox[0])*0.25)
-                #         origBoxes[i] = textBox
-                #         # textImg = orgImg[textBox[1]:textBox[3], textBox[0]:textBox[2]]
-                #         # image = self.img_transform(Image.fromarray(textImg, 'RGB'))
-                #         # with torch.no_grad():
-                #         #     p = self.model(torch.stack([image]).to(self.args.device))
-                #         #     p =  torch.softmax(p, dim=2)
-                #         #     p[:, :, 11:74] = 0
-                #         #     p[:, :, 75:76] = 0
-                #         #     p[:, :, 77:] = 0
-                #         #     pred, p = self.model.tokenizer.decode(p)
-                #         #     txts[i] = pred[0]
-                #         #     scores[i] = p[0].cpu().mean().item()
-                #         break
-        elif modelType==2:
-            for i in range(len(boxes)):
-                x_min,y_min,x_max,y_max = boxes[i]
-                w,h = x_max-x_min,y_max-y_min
-                externRatio = 0.1
-                x = max(0, x_min - int(w*externRatio*0.5))
-                y = max(0, y_min - int(h*externRatio*0.5))
-                w += int(w*externRatio)
-                # h += int(h*externRatio)
-                origBoxes.append([int(x/formRatio),int(y/formRatio),int((x + w)/formRatio),int((y + h)/formRatio)])
-                textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
-                
-                grayImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
-                T, binImg = cv2.threshold(grayImg, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-                textImg = binImg#cv2.cvtColor(binImg, cv2.COLOR_GRAY2RGB)
-
-                cv2.imwrite("tmp.png", textImg)
-
-                result = self.ocr.ocr(img=textImg, cls=False, det=False)
-                print("result: ", result)
-                txts.append(result[0][0][0])
-
-
-        #     cv2.putText(drawImg, txts[i], boxes[i][1], cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        # im_show = draw_ocr_box_txt(img, boxes, txts, scores, font_path='fonts/NotoSans-Regular.ttf')
-        # im_show = drawImg.copy()
+        self.model_text_value = load_from_checkpoint('parseq_rec_model/parseq_text_value_2024_10_15.ckpt', **kwargs).eval().to(self.args.device)
         
-        result_txts = txts
-        result_boxs = origBoxes
-        if len(configs) > 0:
-            result_txts = []
-            result_boxs = []
-            numberDigits = configs["total_digit"]
-            numberDigitBeforeDot = configs["digit_before_dot"]
-            for i in range(len(txts)):
-                text = txts[i]
-                text = re.sub("[\D]", "", text)
-                if len(text) == numberDigits or numberDigits == 0:
-                    if numberDigitBeforeDot > 0 and numberDigitBeforeDot < len(text):
-                        text = text[:numberDigitBeforeDot] + '.' + text[numberDigitBeforeDot:]
-                    result_txts.append(text)
-                    result_boxs.append(origBoxes[i])
-                
-        drawImg = drawResult(drawImg, result_boxs, result_txts)
-        array = cv2.cvtColor(np.array(drawImg), cv2.COLOR_RGB2BGR)
-        im_show = Image.fromarray(array, mode="RGB")
-        bytes_image = io.BytesIO()
-        im_show.save(bytes_image, format='PNG')
-        return bytes_image.getvalue()
+        self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
     
     def postprocess_prediction(self, prediction, part3_max_length):
         """Postprocess the model's prediction."""
@@ -194,7 +64,9 @@ class ImageReader():
                 parts[i] = parts[i][:formats[i]]
             
             parts[1] = parts[1].replace('/', '1')
+            parts[1] = parts[1].replace('\\', '1')
             parts[2] = parts[2].replace('/', '1') if len(parts[2]) == 3 else parts[2]
+            parts[2] = parts[2].replace('\\', '1') if len(parts[2]) == 3 else parts[2]
             
             return "-".join(parts)
         return prediction
@@ -208,16 +80,24 @@ class ImageReader():
         images=[]
         origBoxes = []
         plateNoImgs = []
+        textValueImgs = []
         #rec by parseq
         plateNoItems = []
         valueItems = []
+        textValueItems = []
         for i in range(len(items)):
             x,y,w,h = items[i]["position"]
             origBoxes.append([x,y,x+w,y+h])
             textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
-            if items[i]["title"] == "plateNo" or items[i]["modeData"] == 2:
+            if items[i]["title"] == "plateNo":
                 plateNoImgs.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
                 plateNoItems.append(items[i])
+            elif items[i]["modeData"] == 2:
+                if False:
+                    outputImg = Image.fromarray(textImg, 'RGB')
+                    outputImg.save("cropTextImgs/{index}.png".format(index = i))
+                textValueImgs.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
+                textValueItems.append(items[i])
             else:
                 images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
                 valueItems.append(items[i])
@@ -236,6 +116,21 @@ class ImageReader():
                     txt = re.sub("[,.]", "", txt)
                     plateNoItems[i]["content"] =txt
                     plateNoItems[i]["score"] =scores[i]
+
+        if len(textValueImgs) > 0:
+            textValueImgs = torch.stack(textValueImgs).to(self.args.device)
+            with torch.no_grad():
+                p = self.model_text_value(textValueImgs)
+                p =  torch.softmax(p, dim=2)
+                pred, p = self.model_text_value.tokenizer.decode(p)
+                txts = pred
+                scores = ([s.cpu().mean().item() for s in p])
+                for i in range(len(txts)):
+                    txt = txts[i]
+                    # txt = self.postprocess_prediction(txt,9)
+                    # txt = re.sub("[,.]", "", txt)
+                    textValueItems[i]["content"] =txt
+                    textValueItems[i]["score"] =scores[i]
 
         if len(images) > 0:
             images = torch.stack(images).to(self.args.device)
@@ -265,5 +160,5 @@ class ImageReader():
         im_show = Image.fromarray(array, mode="RGB")
         bytes_image = io.BytesIO()
         im_show.save(bytes_image, format='PNG')
-        items = plateNoItems + valueItems
+        items = plateNoItems + textValueItems + valueItems
         return items, bytes_image.getvalue()
