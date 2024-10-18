@@ -94,6 +94,21 @@ def sortTextBox(boxes):
 
     return sortedBoxs
 
+def getBoundingBoxOfListBox(boxes):
+    x_values = []
+    y_values = []
+    for j in range(len(boxes)):
+        x_values.append(boxes[j][0])
+        x_values.append(boxes[j][2])
+        y_values.append(boxes[j][1])
+        y_values.append(boxes[j][3])
+    print("x_values: ", x_values)
+    print("y_values: ", y_values)
+
+    x_min, x_max = min(x_values), max(x_values)
+    y_min, y_max = min(y_values), max(y_values)
+    return (x_min, y_min, x_max, y_max)
+
 def mergeLine(boxes):
     print("boxes: ", boxes)
     sortedBoxs = sortTextBox(boxes)
@@ -102,17 +117,25 @@ def mergeLine(boxes):
         if len(sortedBoxs[i]) < 1:
             continue
         print("sortedBoxs {}: {}".format(i, sortedBoxs[i]))
-        x_values = []
-        y_values = []
-        for j in range(len(sortedBoxs[i])):
-            x_values.append(sortedBoxs[i][j][0])
-            x_values.append(sortedBoxs[i][j][2])
-            y_values.append(sortedBoxs[i][j][1])
-            y_values.append(sortedBoxs[i][j][3])
-        print("x_values: ", x_values)
-        print("y_values: ", y_values)
+        
+        group = []
+        for k in range(len(sortedBoxs[i])):
+            if len(group) == 0:
+                group.append(sortedBoxs[i][k])
+                continue
+            else:
+                distance = sortedBoxs[i][k][0] - group[-1][2]
+                print("distance {}: {}".format(k, distance))
+                if distance <= max(sortedBoxs[i][k][2]-sortedBoxs[i][k][0], group[-1][2]-group[-1][0])/2:
+                    group.append(sortedBoxs[i][k])
+                    continue
+                lines.append(getBoundingBoxOfListBox(group))
+                group = []
+                group.append(sortedBoxs[i][k])
 
-        x_min, x_max = min(x_values), max(x_values)
-        y_min, y_max = min(y_values), max(y_values)
-        lines.append((x_min, y_min, x_max, y_max))
+
+        if len(group) > 0:
+            lines.append(getBoundingBoxOfListBox(group))
+            group = []
+            
     return lines
