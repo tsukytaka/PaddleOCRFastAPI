@@ -20,7 +20,7 @@ imageReader = ImageReader()
 async def predict_by_file(file: UploadFile, infos: str=Form(), model:int=1):
     # imageReader: ImageReader = ImageReader()
     # restfulModel: RestfulModel = RestfulModel()
-    if file.filename.endswith((".jpg", ".jpeg",".png")):
+    if file.filename.endswith((".jpg", ".jpeg",".png",".JPG", ".JPEG",".PNG")):
         configs = json.loads(infos)
         # restfulModel.resultcode = 200
         # restfulModel.message = file.filename
@@ -53,7 +53,7 @@ async def read_file_with_position(file: UploadFile, positions: str=Form(), model
     # positions = json.dumps(test_array)
     items = json.loads(positions)
     print("items: ", items)
-    if file.filename.endswith((".jpg", ".jpeg",".png")):
+    if file.filename.endswith((".jpg", ".jpeg",".png",".JPG", ".JPEG",".PNG")):
         file_data = file.file
         file_bytes = file_data.read()
         output_file_bytes = file_bytes

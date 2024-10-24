@@ -53,7 +53,7 @@ class ImageReader():
     def ProcessImage(self, imageFileBytes, configs, modelType):
         img = bytes_to_ndarray(imageFileBytes)
         orgImg = img.copy()
-        formRatio = 480.0 / img.shape[1]
+        formRatio = 720.0 / img.shape[1]
         img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
         # npImg = Image.fromarray(img)
         drawImg = orgImg.copy()
