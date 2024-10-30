@@ -31,7 +31,7 @@ class ImageReader():
 
     def __init__(self):
         # self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
-        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
+        self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', det_model_dir="./paddle_models/det/red_chalk_PP-OCR_v3_det_inference/Student", rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
         parser = argparse.ArgumentParser()
         # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
@@ -53,20 +53,61 @@ class ImageReader():
     def ProcessImage(self, imageFileBytes, configs, modelType):
         img = bytes_to_ndarray(imageFileBytes)
         orgImg = img.copy()
-        formRatio = 720.0 / img.shape[1]
-        img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
-        # npImg = Image.fromarray(img)
-        drawImg = orgImg.copy()
-        #detect by paddle
-        result = self.ocr.ocr(img=img, cls=False, rec=False)
-        print("result: ", result)
-        for idx in range(len(result)):
-            res = result[idx]
-            for line in res:
-                print(line)
-        boxes = result[0]
-        print("boxes: ", boxes)
-        print("size: ", len(boxes))
+        drawImg = img.copy()
+        isImprove = True
+        improveBox = [0,0,orgImg.shape[1],orgImg.shape[0]]
+        while isImprove:
+            print("img: ", img.shape)
+            if (img.shape[1] > img.shape[0]):
+                formRatio = 480.0 / img.shape[0]
+            else:
+                formRatio = 480.0 / img.shape[1]
+            if (formRatio > 1):
+                formRatio = 1
+            img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
+            # npImg = Image.fromarray(img)
+            #detect by paddle
+            result = self.ocr.ocr(img=img, cls=False, rec=False)
+            print("result: ", result)
+            for idx in range(len(result)):
+                res = result[idx]
+                for line in res:
+                    print(line)
+            boxes = result[0]
+            print("boxes: ", boxes)
+            print("size: ", len(boxes))
+
+            #improve detection by crop area
+            if len(boxes) == 0:
+                break
+            coords = []
+            for box in boxes:
+                coords += box
+            print("coords: ", coords)
+            x_values = [x for x, _ in coords]
+            y_values = [y for _, y in coords]
+            x_min, x_max = min(x_values), max(x_values)
+            y_min, y_max = min(y_values), max(y_values)
+            isImprove = False
+            w = improveBox[2] - improveBox[0]
+            h = improveBox[3] - improveBox[1]
+            if (x_min > img.shape[1]*0.5):
+                improveBox = [int(w*0.5) + improveBox[0], 0 + improveBox[1], w + improveBox[0], y + improveBox[1]]
+                isImprove = True
+            elif x_max < img.shape[1]*0.5:
+                improveBox = [0 + improveBox[0],0 + improveBox[1],int(w*0.5) + improveBox[0],y + improveBox[1]]
+                isImprove = True
+            elif y_min > img.shape[0]*0.5:
+                improveBox = [0 + improveBox[0],int(h*0.5) + improveBox[1],w + improveBox[0],h + improveBox[1]]
+                isImprove = True
+            elif y_max < img.shape[0]*0.5:
+                improveBox = [0 + improveBox[0],0 + improveBox[1],w + improveBox[0],int(h*0.5) + improveBox[1]]
+                isImprove = True
+            if isImprove:
+                img = orgImg[improveBox[1]:improveBox[3], improveBox[0]:improveBox[2]]
+        
+
+
         for i in range(len(boxes)):
             boxes[i] = (quad_coords_to_xyxy(boxes[i]))
         boxes = mergeLine(boxes)
@@ -84,7 +125,7 @@ class ImageReader():
                 y = max(0, y_min - int(h*externRatio*0.5))
                 w += int(w*externRatio)
                 h += int(h*externRatio)
-                origBoxes.append([int(x/formRatio),int(y/formRatio),int((x + w)/formRatio),int((y + h)/formRatio)])
+                origBoxes.append([int(x/formRatio)+improveBox[0],int(y/formRatio)+improveBox[1],int((x + w)/formRatio)+improveBox[0],int((y + h)/formRatio)+improveBox[1]])
                 # origBoxes.append([int(x_min/formRatio),int(y_min/formRatio),int(x_max/formRatio),int(y_max/formRatio)])
                 # drawImg = cv2.rectangle(drawImg, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)
                 textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
