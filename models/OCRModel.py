@@ -54,62 +54,99 @@ class ImageReader():
         img = bytes_to_ndarray(imageFileBytes)
         orgImg = img.copy()
         drawImg = img.copy()
+        if (img.shape[1] > img.shape[0]):
+            formRatio = 480.0 / img.shape[0]
+        else:
+            formRatio = 480.0 / img.shape[1]
+        if (formRatio > 1):
+            formRatio = 1
         isImprove = True
         improveBox = [0,0,orgImg.shape[1],orgImg.shape[0]]
+        count = 0
         while isImprove:
+            count += 1
             print("img: ", img.shape)
-            if (img.shape[1] > img.shape[0]):
-                formRatio = 480.0 / img.shape[0]
-            else:
-                formRatio = 480.0 / img.shape[1]
-            if (formRatio > 1):
-                formRatio = 1
+
             img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
             # npImg = Image.fromarray(img)
             #detect by paddle
-            result = self.ocr.ocr(img=img, cls=False, rec=False)
-            print("result: ", result)
-            for idx in range(len(result)):
-                res = result[idx]
-                for line in res:
-                    print(line)
-            boxes = result[0]
-            print("boxes: ", boxes)
-            print("size: ", len(boxes))
+            boxes = []
+            # if count > 1:
+            # result = self.ocr.ocr(img=img, cls=False, rec=False)
+            # print("result: ", result)
+            # for idx in range(len(result)):
+            #     res = result[idx]
+            #     for line in res:
+            #         print(line)
+            # boxes = result[0]
+            # print("boxes: ", boxes)
+            # print("size: ", len(boxes))
 
-            #improve detection by crop area
-            if len(boxes) == 0:
-                break
-            coords = []
-            for box in boxes:
-                coords += box
-            print("coords: ", coords)
-            x_values = [x for x, _ in coords]
-            y_values = [y for _, y in coords]
-            x_min, x_max = min(x_values), max(x_values)
-            y_min, y_max = min(y_values), max(y_values)
+            #improve detection by crop area 
+            if count == 1:
+                for i in range(4):
+                    smallRect = [int(img.shape[1]*0.5)*((i)%2), int(img.shape[0]*0.5)*(i//2), int(img.shape[1]*0.5), int(img.shape[0]*0.5)]
+                    smallImg = img[smallRect[1]:smallRect[1]+smallRect[3], smallRect[0]:smallRect[0]+smallRect[2]]
+                    result = self.ocr.ocr(img=smallImg, cls=False, rec=False)
+                    
+                    print("smallRect: ", smallRect)
+                    print("small result: ", result)
+                    for box in result[0]:
+                        for i in range(len(box)):
+                            box[i][0] += smallRect[0]
+                            box[i][1] += smallRect[1]
+                        boxes += [box]
+                
+                for i in range(2):
+                    print("(5^(i%2)) = ", pow(5,i%2))
+                    smallRect = [int(img.shape[1]*0.4*((i)%2)), int(img.shape[0]*0.4*((i+1)%2)), int(img.shape[1]/pow(5,i%2)), int(img.shape[0]/pow(5,(i+1)%2))]
+                    smallImg = img[smallRect[1]:smallRect[1]+smallRect[3], smallRect[0]:smallRect[0]+smallRect[2]]
+                    result = self.ocr.ocr(img=smallImg, cls=False, rec=False)         
+                    print("smallRect: ", smallRect)
+                    print("small result: ", result)
+                    for box in result[0]:
+                        for i in range(len(box)):
+                            box[i][0] += smallRect[0]
+                            box[i][1] += smallRect[1]
+                        boxes += [box]
+
             isImprove = False
-            w = improveBox[2] - improveBox[0]
-            h = improveBox[3] - improveBox[1]
-            if (x_min > img.shape[1]*0.5):
-                improveBox = [int(w*0.5) + improveBox[0], 0 + improveBox[1], w + improveBox[0], y + improveBox[1]]
-                isImprove = True
-            elif x_max < img.shape[1]*0.5:
-                improveBox = [0 + improveBox[0],0 + improveBox[1],int(w*0.5) + improveBox[0],y + improveBox[1]]
-                isImprove = True
-            elif y_min > img.shape[0]*0.5:
-                improveBox = [0 + improveBox[0],int(h*0.5) + improveBox[1],w + improveBox[0],h + improveBox[1]]
-                isImprove = True
-            elif y_max < img.shape[0]*0.5:
-                improveBox = [0 + improveBox[0],0 + improveBox[1],w + improveBox[0],int(h*0.5) + improveBox[1]]
-                isImprove = True
-            if isImprove:
-                img = orgImg[improveBox[1]:improveBox[3], improveBox[0]:improveBox[2]]
-        
+            # if len(boxes) == 0:
+            #     break
+            # coords = []
+            # for box in boxes:
+            #     coords += box
+            # print("coords: ", coords)
+            # x_values = [x for x, _ in coords]
+            # y_values = [y for _, y in coords]
+            # x_min, x_max = min(x_values), max(x_values)
+            # y_min, y_max = min(y_values), max(y_values)
+            # isImprove = False
+            # w = improveBox[2] - improveBox[0]
+            # h = improveBox[3] - improveBox[1]
+            # if (x_min > img.shape[1]*0.5):
+            #     improveBox = [int(w*0.5) + improveBox[0], 0 + improveBox[1], w + improveBox[0], h + improveBox[1]]
+            #     isImprove = True
+            # elif x_max < img.shape[1]*0.5:
+            #     improveBox = [0 + improveBox[0],0 + improveBox[1],int(w*0.5) + improveBox[0],h + improveBox[1]]
+            #     isImprove = True
 
+            # w = improveBox[2] - improveBox[0]
+            # h = improveBox[3] - improveBox[1]
+            # if y_min > img.shape[0]*0.5:
+            #     improveBox = [0 + improveBox[0],int(h*0.5) + improveBox[1],w + improveBox[0],h + improveBox[1]]
+            #     isImprove = True
+            # elif y_max < img.shape[0]*0.5:
+            #     improveBox = [0 + improveBox[0],0 + improveBox[1],w + improveBox[0],int(h*0.5) + improveBox[1]]
+            #     isImprove = True
+            
+            # print("improveBox: ", improveBox)
+            # if isImprove:
+            #     img = orgImg[improveBox[1]:improveBox[3], improveBox[0]:improveBox[2]]
 
         for i in range(len(boxes)):
             boxes[i] = (quad_coords_to_xyxy(boxes[i]))
+            boxes[i] = [boxes[i][0]/formRatio+improveBox[0], boxes[i][1]/formRatio+improveBox[1], boxes[i][2]/formRatio+improveBox[0], boxes[i][3]/formRatio+improveBox[1]]
         boxes = mergeLine(boxes)
         txts = []
         scores = []
@@ -125,7 +162,7 @@ class ImageReader():
                 y = max(0, y_min - int(h*externRatio*0.5))
                 w += int(w*externRatio)
                 h += int(h*externRatio)
-                origBoxes.append([int(x/formRatio)+improveBox[0],int(y/formRatio)+improveBox[1],int((x + w)/formRatio)+improveBox[0],int((y + h)/formRatio)+improveBox[1]])
+                origBoxes.append([int(x),int(y),int((x + w)),int((y + h))])
                 # origBoxes.append([int(x_min/formRatio),int(y_min/formRatio),int(x_max/formRatio),int(y_max/formRatio)])
                 # drawImg = cv2.rectangle(drawImg, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)
                 textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
@@ -181,7 +218,7 @@ class ImageReader():
                 y = max(0, y_min - int(h*externRatio*0.5))
                 w += int(w*externRatio)
                 # h += int(h*externRatio)
-                origBoxes.append([int(x/formRatio),int(y/formRatio),int((x + w)/formRatio),int((y + h)/formRatio)])
+                origBoxes.append([int(x),int(y),int((x + w)),int((y + h))])
                 textImg = orgImg[origBoxes[i][1]:origBoxes[i][3], origBoxes[i][0]:origBoxes[i][2]]
                 
                 grayImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
