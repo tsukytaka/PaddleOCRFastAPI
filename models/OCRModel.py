@@ -33,8 +33,6 @@ class ImageReader():
         # self.ocr = PaddleOCR(use_angle_cls=False, lang='japan')
         self.ocr = PaddleOCR(use_angle_cls=False, lang='japan', det_model_dir="./paddle_models/det/red_chalk_PP-OCR_v3_det_inference/Student", rec_model_dir="./chalk_font_hwjp_number_PP-OCRv3_inference", rec_char_dict_path="./chalk_font_hwjp_number_PP-OCRv3_inference/dict.txt")
         parser = argparse.ArgumentParser()
-        # parser.add_argument('--checkpoint', default='parseq_rec_model/parseq-2024_05_19.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
-        # parser.add_argument('--checkpoint', default='parseq_rec_model/best-2024-06-11.ckpt' , help="Model checkpoint (or 'pretrained=<model_id>')")
         
         # parser.add_argument('--images', nargs='+', help='Images to read')
         parser.add_argument('--device', default='cpu')
@@ -45,7 +43,7 @@ class ImageReader():
         # print(kwargs)
         # print(f'Additional keyword arguments: {kwargs}')
         # self.model_plate_no = load_from_checkpoint('parseq_rec_model/parseq_plate_no_2024_09_13.ckpt', **kwargs).eval().to(self.args.device)
-        self.model = load_from_checkpoint('parseq_rec_model/parseq_2024_09_23.ckpt', **kwargs).eval().to(self.args.device)
+        self.model = load_from_checkpoint('parseq_rec_model/parseq-2024_05_19.ckpt', **kwargs).eval().to(self.args.device)
         # self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq_writer_1.ckpt', **kwargs).eval().to(self.args.device)
         # print(f'model_writer_1: parseq_rec_model/parseq_writer_1.ckpt')
         self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
