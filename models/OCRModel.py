@@ -58,17 +58,25 @@ class ImageReader():
             formRatio = 480.0 / img.shape[1]
         if (formRatio > 1):
             formRatio = 1
-        isImprove = True
+        isImprove = False
         improveBox = [0,0,orgImg.shape[1],orgImg.shape[0]]
         count = 0
+        boxes = []
+        result = [[]]
+        if not isImprove:
+            img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
+            result = self.ocr.ocr(img=img, cls=False, rec=False)
+            for box in result[0]:
+                x_min,y_min,x_max,y_max = (quad_coords_to_xyxy(box))
+                if x_max - x_min >= 30 and y_max - y_min >= 30:
+                    boxes += [box]
         while isImprove:
             count += 1
             print("img: ", img.shape)
-
+            boxes = []
             img = cv2.resize(img, (0,0), fx=formRatio, fy=formRatio)
             # npImg = Image.fromarray(img)
             #detect by paddle
-            boxes = []
             # if count > 1:
             # result = self.ocr.ocr(img=img, cls=False, rec=False)
             # print("result: ", result)
@@ -145,6 +153,9 @@ class ImageReader():
         for i in range(len(boxes)):
             boxes[i] = (quad_coords_to_xyxy(boxes[i]))
             boxes[i] = [boxes[i][0]/formRatio+improveBox[0], boxes[i][1]/formRatio+improveBox[1], boxes[i][2]/formRatio+improveBox[0], boxes[i][3]/formRatio+improveBox[1]]
+        
+        if len(boxes) == 0:
+            boxes += [improveBox]
         boxes = mergeLine(boxes)
         txts = []
         scores = []
@@ -158,8 +169,8 @@ class ImageReader():
                 externRatio = 0.1
                 x = max(0, x_min - int(w*externRatio*0.5))
                 y = max(0, y_min - int(h*externRatio*0.5))
-                w += int(w*externRatio)
-                h += int(h*externRatio)
+                w = min(orgImg.shape[1], x_max + int(w*externRatio*0.5)) - x
+                h = min(orgImg.shape[0], y_max + int(h*externRatio*0.5)) - y
                 origBoxes.append([int(x),int(y),int((x + w)),int((y + h))])
                 # origBoxes.append([int(x_min/formRatio),int(y_min/formRatio),int(x_max/formRatio),int(y_max/formRatio)])
                 # drawImg = cv2.rectangle(drawImg, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)

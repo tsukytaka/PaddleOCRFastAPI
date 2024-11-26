@@ -67,12 +67,17 @@ def quad_coords_to_xyxy(quad_coords):
 
 def drawResult(img, boxes, txts):
     print("text: ", txts)
+    print("img size: ", img.shape)
     d = ImageDraw.Draw(Image.fromarray(img))
     fnt = ImageFont.truetype('fonts/NotoSans-Regular.ttf', 5)
     for i in range(len(txts)):
         x_min,y_min,x_max,y_max = boxes[i]
         img = cv2.rectangle(img, (int(x_min),int(y_min)), (int(x_max),int(y_max)), (0, 255, 0), 2)
-        img = cv2.putText(img, txts[i], (int(x_min),int(y_min)), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+        print("boxes: ", boxes[i])
+        if y_max > img.shape[0]*0.9:
+            img = cv2.putText(img, txts[i], (int(x_min),int(y_max)), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+        else:
+            img = cv2.putText(img, txts[i], (int(x_min),int(y_min)), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
         # info = txts[i]
         # info.encode("utf-8")
         # d.text([0,0], info, fill=(255, 0, 0), font=fnt)
