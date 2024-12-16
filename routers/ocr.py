@@ -31,7 +31,7 @@ async def predict_by_file(file: UploadFile, model:int=1):
         # result = ocr.ocr(img=img, cls=False, rec=False)
         # print("ocr result: ", result)
         # detect by paddle
-        output_file_bytes = imageReader.ProcessImage(file_bytes, configs, model)
+        output_file_bytes = imageReader.ProcessImage(file_bytes, model)
 
         #recognize by parseq
 
