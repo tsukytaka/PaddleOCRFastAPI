@@ -13,6 +13,7 @@ import torch
 import argparse
 import re
 import json
+import math
 
 from strhub.data.module import SceneTextDataModule
 from strhub.models.utils import load_from_checkpoint, parse_model_args
@@ -55,6 +56,7 @@ class ImageReader():
             positions = json.load(file)["data"]
 
         img = bytes_to_ndarray(imageFileBytes)
+        img = cv2.resize(img, (1920, 1440))
         orgImg = img.copy()
         drawImg = img.copy()
 
@@ -70,17 +72,58 @@ class ImageReader():
                 pts = np.array(pts,np.int32)
                 pts = pts.reshape((-1, 1, 2))
                 print("pts: ", pts)
-                # if i == 0:
                 cv2.polylines(drawImg, [pts], isClosed=True, color=(0, 255, 0), thickness=3)
 
         #crop and rotate text image
+        list_box = []
+        images = []
+        txts = []
         for i in range(len(positions)):
             p1 = [positions[i][0]["x"],positions[i][0]["y"]]
             p2 = [positions[i][1]["x"],positions[i][1]["y"]]
             p3 = [positions[i][2]["x"],positions[i][2]["y"]]
             p4 = [positions[i][3]["x"],positions[i][3]["y"]]
+            x_min,y_min,x_max,y_max = quad_coords_to_xyxy([p1,p2,p3,p4])
+            if i == 0 or i == 1 or i == 6 or i == 7 or i == 8:
+                w = int(math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2))
+                h = int(math.sqrt((p4[0] - p1[0])**2 + (p4[1] - p1[1])**2))
+                src = np.array([p1,p2,p3,p4], dtype = "float32")
+                dst = np.array([[0,0],[w-1,0],[w-1,h-1],[0,h-1]], dtype = "float32")
+                M = cv2.getPerspectiveTransform(src, dst)
+                cropImg = cv2.warpPerspective(img, M, (w, h))
+            else:
+                cropImg = img[y_min:y_max, x_min:x_max]
 
+            result = self.ocr.ocr(img=cropImg, cls=False, rec=False)
+            print("result: ", i, ": ", result)
+            if len(result[0]) == 0:
+                images.append(self.img_transform(Image.fromarray(cropImg, 'RGB')))
+                list_box.append((x_min,y_min,x_min,y_min))
+            else:
+                for box in result[0]:
+                    x,y,x_m,y_m = quad_coords_to_xyxy(box)
+                    textImg = cropImg[int(y):int(y_m), int(x):int(x_m)]
+                    images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
+                    for i in range(len(box)):
+                        box[i][0] += x_min
+                        box[i][1] += y_min
+                    list_box.append((x_min + x,y_min + y,x_min + x_m,y_min+y_m))
+                    
 
+        if len(images) > 0:
+            images = torch.stack(images).to(self.args.device)
+            with torch.no_grad():
+                p = self.model(images)
+                p =  torch.softmax(p, dim=2)
+                p[:, :, 11:74] = 0
+                p[:, :, 75:76] = 0
+                p[:, :, 77:] = 0
+                pred, p = self.model.tokenizer.decode(p)
+            txts = pred
+            scores = ([s.cpu().mean().item() for s in p])
+            
+        drawImg = drawResult(drawImg, list_box, txts)
+        
         array = cv2.cvtColor(np.array(drawImg), cv2.COLOR_RGB2BGR)
         im_show = Image.fromarray(array, mode="RGB")
         bytes_image = io.BytesIO()
