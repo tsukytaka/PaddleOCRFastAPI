@@ -54,10 +54,29 @@ class ImageReader():
         file_path = './models/positions.json'
         with open(file_path, 'r') as file:
             positions = json.load(file)["data"]
+            
 
         img = bytes_to_ndarray(imageFileBytes)
-        img = cv2.resize(img, (1920, 1440))
         orgImg = img.copy()
+
+        scale = 1920/img.shape[1]
+        # img = cv2.resize(img, (1920,1440))
+        # for i in range(len(positions)):
+        #     for j in range(len(positions[i])):
+        #         positions[i][j]["x"] = int(positions[i][j]["x"]*scale)
+        #         positions[i][j]["y"] = int(positions[i][j]["y"]*scale)
+
+        # #transform image
+        # p1 = [positions[0][3]["x"],positions[0][3]["y"]]
+        # p2 = [positions[6][2]["x"],positions[6][2]["y"]]
+        # p3 = [positions[8][3]["x"],positions[8][3]["y"]]
+        # p4 = [positions[2][2]["x"],positions[2][2]["y"]]
+        # dst = np.array([p1,p2,p3,p4], dtype = "float32")
+
+        # src = np.array([[533,349],[1347,343],[1719,1203],[169,1261]], dtype = "float32")
+        # M = cv2.getPerspectiveTransform(src, dst)
+        # img = cv2.warpPerspective(img, M, (1920, 1440))
+
         drawImg = img.copy()
 
         if (True):
@@ -72,7 +91,7 @@ class ImageReader():
                 pts = np.array(pts,np.int32)
                 pts = pts.reshape((-1, 1, 2))
                 print("pts: ", pts)
-                cv2.polylines(drawImg, [pts], isClosed=True, color=(0, 255, 0), thickness=3)
+                cv2.polylines(drawImg, [pts], isClosed=True, color=(0, 255, 0), thickness=5)
 
         #crop and rotate text image
         list_box = []
@@ -94,7 +113,9 @@ class ImageReader():
             else:
                 cropImg = img[y_min:y_max, x_min:x_max]
 
-            result = self.ocr.ocr(img=cropImg, cls=False, rec=False)
+            result = [[]]
+            scalingImg = cv2.resize(cropImg, (int(cropImg.shape[1]*scale), int(cropImg.shape[0]*scale)))
+            result = self.ocr.ocr(img=scalingImg, cls=False, rec=False)
             print("result: ", i, ": ", result)
             if len(result[0]) == 0:
                 images.append(self.img_transform(Image.fromarray(cropImg, 'RGB')))
@@ -102,6 +123,10 @@ class ImageReader():
             else:
                 for box in result[0]:
                     x,y,x_m,y_m = quad_coords_to_xyxy(box)
+                    x = int(x/scale)
+                    y = int(y/scale)
+                    x_m = int(x_m/scale)
+                    y_m = int(y_m/scale)
                     textImg = cropImg[int(y):int(y_m), int(x):int(x_m)]
                     images.append(self.img_transform(Image.fromarray(textImg, 'RGB')))
                     for i in range(len(box)):
@@ -122,7 +147,11 @@ class ImageReader():
             txts = pred
             scores = ([s.cpu().mean().item() for s in p])
             
-        drawImg = drawResult(drawImg, list_box, txts)
+        
+        drawImg = cv2.resize(drawImg, (1920,1440))
+        for i in range(len(list_box)):
+            list_box[i] = (list_box[i][0]*scale,list_box[i][1]*scale,list_box[i][2]*scale,list_box[i][3]*scale)
+        drawImg = drawResult(drawImg, int(drawImg.shape[1]/1920), list_box, txts)
         
         array = cv2.cvtColor(np.array(drawImg), cv2.COLOR_RGB2BGR)
         im_show = Image.fromarray(array, mode="RGB")
