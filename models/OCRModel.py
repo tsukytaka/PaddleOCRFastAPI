@@ -103,7 +103,7 @@ class ImageReader():
             p3 = [positions[i][2]["x"],positions[i][2]["y"]]
             p4 = [positions[i][3]["x"],positions[i][3]["y"]]
             x_min,y_min,x_max,y_max = quad_coords_to_xyxy([p1,p2,p3,p4])
-            if i == 0 or i == 1 or i == 6 or i == 7 or i == 8:
+            if i == 0 or i == 1 or i == 6 or i == 7 or i >= 8:
                 w = int(math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2))
                 h = int(math.sqrt((p4[0] - p1[0])**2 + (p4[1] - p1[1])**2))
                 src = np.array([p1,p2,p3,p4], dtype = "float32")
@@ -119,7 +119,7 @@ class ImageReader():
             print("result: ", i, ": ", result)
             if len(result[0]) == 0:
                 images.append(self.img_transform(Image.fromarray(cropImg, 'RGB')))
-                list_box.append((x_min,y_min,x_min,y_min))
+                list_box.append((x_min,y_min,x_max,y_max))
             else:
                 for box in result[0]:
                     x,y,x_m,y_m = quad_coords_to_xyxy(box)
