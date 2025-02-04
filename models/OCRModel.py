@@ -33,9 +33,9 @@ class ImageReader():
         parser.add_argument('--device', default='cpu')
         self.args, unknown = parser.parse_known_args()
         kwargs = {}
-        self.model_plate_no = load_from_checkpoint('parseq_rec_model/parseq_plate_no_2024_09_13.ckpt', **kwargs).eval().to(self.args.device)
+        # self.model_plate_no = load_from_checkpoint('parseq_rec_model/parseq_plate_no_2024_09_13.ckpt', **kwargs).eval().to(self.args.device)
         self.model = load_from_checkpoint('parseq_rec_model/parseq_2024_09_23.ckpt', **kwargs).eval().to(self.args.device)
-        self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq_writer_1.ckpt', **kwargs).eval().to(self.args.device)
+        # self.model_writer_1 = load_from_checkpoint('parseq_rec_model/parseq_writer_1.ckpt', **kwargs).eval().to(self.args.device)
         
         self.img_transform = SceneTextDataModule.get_transform(self.model.hparams.img_size)
 
